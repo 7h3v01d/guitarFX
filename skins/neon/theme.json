@@ -1,0 +1,12 @@
+{
+    "window_title": "Guitar FX — Neon",
+    "window_size": "880x470",
+    "bg": "#101014",
+    "panel_bg": "#191922",
+    "fg": "#e8e8f0",
+    "accent": "#39ff88",
+    "danger": "#ff4d6d",
+    "muted": "#6a6a7a",
+    "font_family": "Consolas",
+    "font_size": 9
+}

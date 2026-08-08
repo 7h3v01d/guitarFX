@@ -1,0 +1,20 @@
+{
+    "window_title": "Guitar FX — Stage",
+    "window_size": "900x720",
+    "bg": "#0d0f1a",
+    "panel_bg": "#151827",
+    "panel_edge": "#242a40",
+    "fg": "#e8ecff",
+    "muted": "#7a819e",
+    "accent": "#00e0c6",
+    "accent_glow": "#0a4f49",
+    "hot": "#ff5c8a",
+    "amber": "#ffb454",
+    "good": "#4be08a",
+    "danger": "#ff4d6d",
+    "knob_face": "#0b0e18",
+    "track": "#2a3150",
+    "font_family": "Segoe UI",
+    "mono_family": "Consolas",
+    "font_size": 10
+}
