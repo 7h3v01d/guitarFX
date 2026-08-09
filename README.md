@@ -4,10 +4,6 @@ Turn your PC into a guitar amp/effects box using a USB guitar cable
 (the kind with a 1/4" jack on one end and USB on the other — it's a
 built-in audio interface).
 
-<img width="902" height="824" alt="screenshot" src="/screenshot.png" />
-
----
-
 ## What it does
 
 Guitar in → **Noise Gate → Drive → Cabinet Sim → 3-Band EQ → Chorus → Delay → Reverb → Master**
@@ -93,6 +89,24 @@ The Stage skin has a **METRO** bar: toggle it **ON**, set the **BPM** (or hit
 (4 for most songs, 3 for a waltz). The dot flashes teal on the downbeat and green
 on the other beats, and the click is mixed into your output so you can play along.
 It's independent of the guitar tone — turning it on doesn't change your sound.
+
+### Looper
+
+Build a song by yourself: record a phrase, loop it, and stack more parts on top.
+In the Stage skin's **LOOPER** bar the big button cycles through the workflow:
+
+1. **●  REC** — press to start recording your first phrase (this is the base loop).
+2. **■  SET** — press again to close the loop; it starts repeating immediately.
+3. **＋  DUB** — press to overdub: play a new part on top; it's added as a layer.
+4. **■  DUB** — press to punch out; the layer joins the loop. Repeat 3–4 to stack more.
+
+**Stop** pauses playback (the loop is kept), **Undo** removes the most recent
+layer, and **Clear** wipes the loop to start over. The ring shows the loop
+position and the number in the middle is how many layers you've stacked.
+
+**Tip:** turn the **metronome on first**. The looper then gives you a **one-bar
+count-in** (four clicks) before it records, and snaps the loop to a whole number
+of bars — so your layers and the click stay perfectly lined up.
 
 ## Make it yours (re-theming)
 

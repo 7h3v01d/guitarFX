@@ -30,6 +30,7 @@ def device_samplerate(device_index, fallback=SAMPLE_RATE):
 class AudioEngine:
     def __init__(self, fx: EffectsChain):
         self.fx = fx
+        self.looper = None         # optional Looper, records post-FX / plays back
         self.metronome = None      # optional Metronome, mixed into the output
         self.stream = None
         self.blocksize = BLOCK_SIZE
@@ -46,10 +47,17 @@ class AudioEngine:
         try:
             x = indata[:, 0].astype(np.float32)
             y = self.fx.process(x)
+            # Looper records the live post-FX guitar and plays loops back on top
+            # (before the metronome, so the click never gets baked into a loop).
+            lp = self.looper
+            if lp is not None and lp.state != "idle":
+                loop_out = lp.process(y)
+                if loop_out is not None:
+                    y = y + loop_out
             m = self.metronome
             if m is not None and m.enabled:
                 y = y + m.render(len(y))
-                np.clip(y, -1.0, 1.0, out=y)
+            np.clip(y, -1.0, 1.0, out=y)
             outdata[:, 0] = y
         except Exception:
             # A DSP error must NEVER abort the stream (that's a hard cut-out).

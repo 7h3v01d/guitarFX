@@ -5,9 +5,13 @@ commitment to a date — it's a place to park where we're headed.
 
 ## Shipped
 
+- **Looper** (v2.3.0) — live looping with overdub/layering, locked to the
+  metronome. First pass sets the loop (quantised to whole bars when the click is
+  on); later passes stack layers; one-bar count-in; Stop / Play / Undo / Clear
+  and a progress ring in the Stage skin.
 - **Metronome** (v2.2.0) — sample-accurate click with tap-tempo, adjustable
   BPM and beats-per-bar, an accented downbeat, and a beat-flash indicator in the
-  Stage skin. Built on a shared clock the looper will lock to.
+  Stage skin. Built on a shared clock the looper locks to.
 
 ## Near-term (stability & quality of life)
 
@@ -21,33 +25,14 @@ commitment to a date — it's a place to park where we're headed.
 
 ## Planned features
 
-### Looper (live looping + overdubbing)
+### Looper — follow-ups
 
-The headline feature. Record a short phrase, loop it, then stack more parts on
-top in real time — the core of building a song by yourself.
-
-Terms we're building toward:
-- **Looping** — capture a short audio segment and play it back on repeat to make
-  a steady rhythmic/melodic foundation.
-- **Layering** — add more parts (riffs, beats, harmonies) over the repeating
-  main loop.
-- **Live looping / overdubbing** — do all of that in real time, the way a
-  hardware loop pedal or a DAW does.
-
-Sketch of how it fits the current design:
-- A new **Looper stage** at the end of the chain (post-FX, pre-master), or a
-  dedicated `core/looper.py` the controller owns, fed the same processed block
-  the engine already produces.
-- Transport: **Record → Overdub → Play → Stop → Clear**, plus **Undo** of the
-  last overdub layer (keep a small stack of layers so undo/redo is cheap).
-- The first recorded pass sets the loop length; later passes are summed
-  (layered) into the loop buffer and wrapped to that length.
-- **Sync to the metronome** (below): quantise the loop length to a whole number
-  of bars so layers stay locked instead of drifting.
-- A **loop meter / progress ring** in the Stage skin so she can see where the
-  loop is and punch in overdubs on the beat.
-- Nice-to-haves: per-layer volume, feedback/decay (older layers fade),
-  half/double-speed, reverse, export the loop to a `.wav`.
+Shipped in v2.3.0 (record / overdub / layer / undo / clear, bar-quantised,
+one-bar count-in, progress ring). Still on the wish list:
+- **Per-layer volume** and a **feedback/decay** control (older layers fade).
+- **Half / double speed** and **reverse** on the loop.
+- **Export the loop to a `.wav`** so she can keep what she makes.
+- **Redo** (currently undo only), and multi-level undo of the base layer.
 
 ### Metronome
 

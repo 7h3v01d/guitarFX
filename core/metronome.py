@@ -61,6 +61,12 @@ class Metronome:
         """Samples between beats."""
         return self.sr * 60.0 / self._bpm
 
+    def samples_per_beat(self) -> float:
+        return self._interval()
+
+    def samples_per_bar(self) -> float:
+        return self._interval() * self.beats_per_bar
+
     def reset(self):
         """Restart the beat grid so the next render begins on a downbeat."""
         self._pos = 0.0

@@ -28,6 +28,7 @@ from typing import Callable, Optional
 from . import presets as presets_mod
 from .effects import EffectsChain
 from .engine import AudioEngine, SAMPLE_RATE
+from .looper import Looper, IDLE
 from .metronome import Metronome
 from .params import PARAM_SPEC, ParamSpec  # re-exported for skins that import them
 from .tuner import Tuner
@@ -43,10 +44,12 @@ class GuitarFXController:
         self.engine = AudioEngine(self.fx)
         self.tuner = Tuner(SAMPLE_RATE)
         self.metronome = Metronome(SAMPLE_RATE)
+        self.looper = Looper(SAMPLE_RATE)
         # Feed the tuner straight from the pre-FX input block.
         self.fx.analysis_hook = self.tuner.push
-        # Let the engine mix the metronome click into the output.
+        # Let the engine mix the metronome click + looper playback into output.
         self.engine.metronome = self.metronome
+        self.engine.looper = self.looper
         self._state_listeners = []
         self._last_error: Optional[str] = None
         self._user_presets = presets_mod.load_user_presets()
@@ -128,6 +131,7 @@ class GuitarFXController:
             self.fx.set_samplerate(wanted)
             self.tuner.set_samplerate(wanted)
             self.metronome.set_samplerate(wanted)
+            self.looper.set_samplerate(wanted)
             actual = self.engine.start(
                 input_device, output_device,
                 samplerate=wanted, blocksize=self._buffer_size,
@@ -137,6 +141,7 @@ class GuitarFXController:
                 self.fx.set_samplerate(actual)
                 self.tuner.set_samplerate(actual)
                 self.metronome.set_samplerate(actual)
+                self.looper.set_samplerate(actual)
             self._last_error = None
         except Exception as e:
             self._last_error = str(e)
@@ -295,6 +300,63 @@ class GuitarFXController:
         beat_count increases by 1 each click; compare it to the last value
         you saw to know a beat just fired."""
         return (self.metronome.beat_count, self.metronome.current_beat)
+
+    # ---------------------------------------------------------------
+    # Looper
+    # ---------------------------------------------------------------
+    def _begin_record(self):
+        """Start a fresh loop. If the metronome is on, align a one-bar count-in
+        to the click and quantise the loop length to whole bars so layers and
+        the beat stay locked together."""
+        spb = None
+        count_in = 0
+        if self.metronome.enabled:
+            spb = int(round(self.metronome.samples_per_bar()))
+            count_in = spb
+            self.metronome.reset()      # start the click on beat 1 of the count-in
+        self.looper.arm_record(samples_per_bar=spb, count_in_samples=count_in)
+
+    def looper_toggle(self):
+        """Single-button pedal cycle: Record -> Play -> Overdub -> Play -> ...
+        Starting a fresh loop wires in the metronome count-in/quantise."""
+        if self.looper.state == IDLE:
+            self._begin_record()
+        else:
+            self.looper.toggle()
+        self._notify_state()
+
+    def looper_stop(self):
+        self.looper.stop()
+        self._notify_state()
+
+    def looper_play(self):
+        self.looper.play()
+        self._notify_state()
+
+    def looper_clear(self):
+        self.looper.clear()
+        self._notify_state()
+
+    def looper_undo(self):
+        self.looper.undo()
+        self._notify_state()
+
+    def set_loop_volume(self, v: float):
+        self.looper.volume = max(0.0, min(1.0, float(v)))
+
+    def get_loop_volume(self) -> float:
+        return self.looper.volume
+
+    def looper_state(self):
+        """Snapshot for the UI: state name, layer count, 0..1 position, length."""
+        lp = self.looper
+        return {
+            "state": lp.state,
+            "layers": lp.layer_count,
+            "position": lp.position_fraction(),
+            "length_seconds": lp.length_seconds,
+            "has_loop": lp.has_loop(),
+        }
 
     # ---------------------------------------------------------------
     # Metering

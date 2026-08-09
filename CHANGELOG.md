@@ -1,5 +1,36 @@
 # Changelog
 
+## 2.3.0 — Looper (live looping + overdubbing)
+
+### Added
+- **Looper** (`core/looper.py`) — record a phrase, loop it, and stack layers on
+  top in real time:
+  - **Record → Set → Overdub → Punch-out** cycle on one button, plus **Stop**,
+    **Play**, **Undo** (removes the last layer), and **Clear**.
+  - **Locked to the metronome:** when the click is on, recording gets a **one-bar
+    count-in** and the loop length is **quantised to whole bars**, so layers and
+    the beat stay lined up. With the metronome off, it free-runs at whatever
+    length you record.
+  - Records the **post-FX** signal (loops include your tone), and mixes loop
+    playback in **before** the click so the metronome never gets baked into a loop.
+  - Efficient layer model with a running mix, so **undo** is clean and cheap.
+  - Rebuilds on device sample-rate change; fails safe (a glitch can't abort audio).
+- **Stage skin LOOPER bar:** cycling transport button, Stop / Undo / Clear, a
+  **progress ring** with a live layer count, and a state readout.
+- Controller API for skins: `looper_toggle`, `looper_stop`, `looper_play`,
+  `looper_undo`, `looper_clear`, `looper_state`, `set_loop_volume` /
+  `get_loop_volume`.
+
+### Notes
+- Loop length caps at 60 seconds (auto-closes if you run over).
+- Follow-ups parked in ROADMAP.md: per-layer volume, feedback/decay, half/double
+  speed, reverse, and export-loop-to-WAV.
+- Tests: 51 passing (eleven new for the looper — record/playback, overdub
+  summing, undo, bar-quantise, count-in, wrap-around, block-size independence).
+- As with the metronome, the looper *logic* is fully unit-tested and every UI
+  wire was statically verified, but the Stage bar itself renders first on your
+  machine — send a traceback if anything's off.
+
 ## 2.2.0 — Metronome
 
 ### Added

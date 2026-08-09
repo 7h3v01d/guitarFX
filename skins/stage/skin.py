@@ -273,6 +273,7 @@ class _StageApp(tk.Tk):
         self._build_top()
         self._build_tuner()
         self._build_metronome()
+        self._build_looper()
         self._build_presets()
         self._build_board()
         self._build_footer()
@@ -377,6 +378,46 @@ class _StageApp(tk.Tk):
         self.sig_spin.pack(side="left", padx=4, pady=6)
 
         self._last_beat_count = 0
+
+    def _build_looper(self):
+        t = self.theme
+        bar = self._panel(self)
+        bar.pack(fill="x", padx=12, pady=(0, 6))
+
+        tk.Label(bar, text="LOOPER", bg=t["panel_bg"], fg=t["muted"],
+                 font=(t["font_family"], 9, "bold")).pack(side="left", padx=(12, 8), pady=8)
+
+        # progress ring with layer count in the middle
+        self.loop_ring = tk.Canvas(bar, width=44, height=44, bg=t["panel_bg"],
+                                   highlightthickness=0)
+        self.loop_ring.create_oval(6, 6, 38, 38, outline=t["panel_edge"], width=4)
+        self._loop_arc = self.loop_ring.create_arc(6, 6, 38, 38, start=90, extent=0,
+                                                   style="arc", outline=t["accent"], width=4)
+        self._loop_txt = self.loop_ring.create_text(22, 22, text="0",
+                                                    fill=t["fg"],
+                                                    font=(t["font_family"], 10, "bold"))
+        self.loop_ring.pack(side="left", padx=8)
+
+        self.loop_btn = tk.Button(bar, text="●  REC", width=9, command=self._loop_toggle,
+                                  bg=t["danger"], fg="#2a0d0d", relief="flat",
+                                  activebackground=t["accent"],
+                                  font=(t["font_family"], 11, "bold"))
+        self.loop_btn.pack(side="left", padx=4, pady=6)
+
+        tk.Button(bar, text="■ Stop", command=self._loop_stop, relief="flat",
+                  bg=t["panel_edge"], fg=t["fg"], activebackground=t["accent"],
+                  font=(t["font_family"], 10, "bold")).pack(side="left", padx=4, pady=6)
+        tk.Button(bar, text="↶ Undo", command=self._loop_undo, relief="flat",
+                  bg=t["panel_edge"], fg=t["fg"], activebackground=t["accent"],
+                  font=(t["font_family"], 10, "bold")).pack(side="left", padx=4, pady=6)
+        tk.Button(bar, text="✕ Clear", command=self._loop_clear, relief="flat",
+                  bg=t["panel_edge"], fg=t["danger"], activebackground=t["danger"],
+                  font=(t["font_family"], 10, "bold")).pack(side="left", padx=4, pady=6)
+
+        self.loop_status = tk.Label(bar, text="empty", bg=t["panel_bg"], fg=t["muted"],
+                                    font=(t["font_family"], 9, "bold"))
+        self.loop_status.pack(side="left", padx=12)
+        self._last_loop_state = None
 
     def _build_presets(self):
         t = self.theme
@@ -492,6 +533,58 @@ class _StageApp(tk.Tk):
         bpm = self.controller.tap_tempo()
         self.bpm_var.set(int(round(bpm)))
 
+    # ---- looper ----
+    _LOOP_BTN = {
+        "idle": ("●  REC", "danger", "#2a0d0d"),
+        "countin": ("…  WAIT", "panel_edge", None),
+        "recording": ("■  SET", "accent", "#04231f"),
+        "playing": ("＋  DUB", "good", "#04231f"),
+        "overdubbing": ("■  DUB", "accent", "#04231f"),
+        "stopped": ("▶  PLAY", "good", "#04231f"),
+    }
+
+    def _loop_toggle(self):
+        self.controller.looper_toggle()
+        self._refresh_loop(force=True)
+
+    def _loop_stop(self):
+        self.controller.looper_stop()
+        self._refresh_loop(force=True)
+
+    def _loop_undo(self):
+        self.controller.looper_undo()
+        self._refresh_loop(force=True)
+
+    def _loop_clear(self):
+        self.controller.looper_clear()
+        self._refresh_loop(force=True)
+
+    def _refresh_loop(self, force=False):
+        t = self.theme
+        st = self.controller.looper_state()
+        name = st["state"]
+        if force or name != self._last_loop_state:
+            self._last_loop_state = name
+            label, bg_key, fg = self._LOOP_BTN.get(name, ("●  REC", "danger", "#2a0d0d"))
+            self.loop_btn.config(text=label, bg=t[bg_key],
+                                 fg=fg if fg else t["fg"])
+            layers = st["layers"]
+            secs = st["length_seconds"]
+            if name == "idle":
+                self.loop_status.config(text="empty", fg=t["muted"])
+            elif name in ("recording", "countin"):
+                self.loop_status.config(
+                    text="count-in…" if name == "countin" else "recording…",
+                    fg=t["accent"])
+            else:
+                self.loop_status.config(
+                    text=f"{layers} layer{'s' if layers != 1 else ''} · {secs:.1f}s",
+                    fg=t["good"] if name != "stopped" else t["muted"])
+            self.loop_ring.itemconfig(self._loop_txt, text=str(st["layers"]))
+        # progress ring updates every poll
+        extent = -359.9 * st["position"] if st["has_loop"] else 0
+        self.loop_ring.itemconfig(self._loop_arc, extent=extent)
+
     def _refresh_devices(self):
         try:
             inputs = self.controller.list_input_devices()
@@ -561,6 +654,9 @@ class _StageApp(tk.Tk):
             self.beat_dot.itemconfig(self._beat_oval, fill=color)
         else:
             self.beat_dot.itemconfig(self._beat_oval, fill=self.theme["panel_edge"])
+
+        # Looper transport / progress ring.
+        self._refresh_loop()
 
         self.after(70, self._poll)
 
