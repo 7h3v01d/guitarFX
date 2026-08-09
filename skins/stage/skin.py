@@ -272,6 +272,7 @@ class _StageApp(tk.Tk):
 
         self._build_top()
         self._build_tuner()
+        self._build_metronome()
         self._build_presets()
         self._build_board()
         self._build_footer()
@@ -328,6 +329,54 @@ class _StageApp(tk.Tk):
         wrap.pack(fill="x", padx=12, pady=6)
         self.tuner_display = TunerDisplay(wrap, self.theme, width=876)
         self.tuner_display.pack(fill="x")
+
+    def _build_metronome(self):
+        t = self.theme
+        bar = self._panel(self)
+        bar.pack(fill="x", padx=12, pady=(0, 6))
+
+        tk.Label(bar, text="METRO", bg=t["panel_bg"], fg=t["muted"],
+                 font=(t["font_family"], 9, "bold")).pack(side="left", padx=(12, 8), pady=8)
+
+        self.metro_btn = tk.Button(bar, text="OFF", width=5, command=self._toggle_metro,
+                                   bg=t["panel_edge"], fg=t["fg"], relief="flat",
+                                   activebackground=t["accent"], activeforeground="#04231f",
+                                   font=(t["font_family"], 10, "bold"))
+        self.metro_btn.pack(side="left", padx=4, pady=6)
+
+        # Beat indicator: flashes accent on the downbeat, green on other beats.
+        self.beat_dot = tk.Canvas(bar, width=26, height=26, bg=t["panel_bg"],
+                                  highlightthickness=0)
+        self._beat_oval = self.beat_dot.create_oval(5, 5, 21, 21,
+                                                    fill=t["panel_edge"], outline=t["muted"])
+        self.beat_dot.pack(side="left", padx=8)
+
+        tk.Label(bar, text="BPM", bg=t["panel_bg"], fg=t["muted"],
+                 font=(t["font_family"], 9, "bold")).pack(side="left", padx=(12, 4))
+        self.bpm_var = tk.IntVar(value=int(round(self.controller.get_bpm())))
+        self.bpm_spin = tk.Spinbox(bar, from_=30, to=300, width=5,
+                                   textvariable=self.bpm_var, command=self._on_bpm,
+                                   bg=t["panel_edge"], fg=t["fg"], relief="flat",
+                                   justify="center", font=(t["font_family"], 11, "bold"))
+        self.bpm_spin.pack(side="left", padx=4, pady=6)
+        self.bpm_spin.bind("<Return>", lambda e: self._on_bpm())
+        self.bpm_spin.bind("<FocusOut>", lambda e: self._on_bpm())
+
+        tk.Button(bar, text="TAP", command=self._tap_tempo, width=5,
+                  bg=t["panel_edge"], fg=t["accent"], relief="flat",
+                  activebackground=t["accent"], activeforeground="#04231f",
+                  font=(t["font_family"], 10, "bold")).pack(side="left", padx=8, pady=6)
+
+        tk.Label(bar, text="BEATS/BAR", bg=t["panel_bg"], fg=t["muted"],
+                 font=(t["font_family"], 9, "bold")).pack(side="left", padx=(12, 4))
+        self.sig_var = tk.IntVar(value=self.controller.get_beats_per_bar())
+        self.sig_spin = tk.Spinbox(bar, from_=1, to=12, width=3,
+                                   textvariable=self.sig_var, command=self._on_sig,
+                                   bg=t["panel_edge"], fg=t["fg"], relief="flat",
+                                   justify="center", font=(t["font_family"], 11, "bold"))
+        self.sig_spin.pack(side="left", padx=4, pady=6)
+
+        self._last_beat_count = 0
 
     def _build_presets(self):
         t = self.theme
@@ -418,6 +467,31 @@ class _StageApp(tk.Tk):
             knob.set_value(self.controller.get_param(key))
         self.bypass_var.set(False)
 
+    # ---- metronome ----
+    def _toggle_metro(self):
+        t = self.theme
+        on = not self.controller.is_metronome_enabled()
+        self.controller.set_metronome_enabled(on)
+        self.metro_btn.config(text="ON" if on else "OFF",
+                              bg=t["accent"] if on else t["panel_edge"],
+                              fg="#04231f" if on else t["fg"])
+
+    def _on_bpm(self):
+        try:
+            self.controller.set_bpm(int(self.bpm_var.get()))
+        except (tk.TclError, ValueError):
+            pass
+
+    def _on_sig(self):
+        try:
+            self.controller.set_beats_per_bar(int(self.sig_var.get()))
+        except (tk.TclError, ValueError):
+            pass
+
+    def _tap_tempo(self):
+        bpm = self.controller.tap_tempo()
+        self.bpm_var.set(int(round(bpm)))
+
     def _refresh_devices(self):
         try:
             inputs = self.controller.list_input_devices()
@@ -477,6 +551,17 @@ class _StageApp(tk.Tk):
             self.tuner_display.update_reading(self.controller.get_tuner())
         else:
             self.tuner_display.update_reading(None)
+
+        # Metronome beat flash: bright on a new beat (accent on the downbeat),
+        # dim otherwise.
+        count, cur = self.controller.metronome_beat_state()
+        if count != self._last_beat_count:
+            self._last_beat_count = count
+            color = self.theme["accent"] if cur == 0 else self.theme["good"]
+            self.beat_dot.itemconfig(self._beat_oval, fill=color)
+        else:
+            self.beat_dot.itemconfig(self._beat_oval, fill=self.theme["panel_edge"])
+
         self.after(70, self._poll)
 
     def _on_close(self):

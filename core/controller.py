@@ -28,6 +28,7 @@ from typing import Callable, Optional
 from . import presets as presets_mod
 from .effects import EffectsChain
 from .engine import AudioEngine, SAMPLE_RATE
+from .metronome import Metronome
 from .params import PARAM_SPEC, ParamSpec  # re-exported for skins that import them
 from .tuner import Tuner
 
@@ -41,8 +42,11 @@ class GuitarFXController:
         self.fx = EffectsChain(SAMPLE_RATE)
         self.engine = AudioEngine(self.fx)
         self.tuner = Tuner(SAMPLE_RATE)
+        self.metronome = Metronome(SAMPLE_RATE)
         # Feed the tuner straight from the pre-FX input block.
         self.fx.analysis_hook = self.tuner.push
+        # Let the engine mix the metronome click into the output.
+        self.engine.metronome = self.metronome
         self._state_listeners = []
         self._last_error: Optional[str] = None
         self._user_presets = presets_mod.load_user_presets()
@@ -123,6 +127,7 @@ class GuitarFXController:
             wanted = device_samplerate(input_device)
             self.fx.set_samplerate(wanted)
             self.tuner.set_samplerate(wanted)
+            self.metronome.set_samplerate(wanted)
             actual = self.engine.start(
                 input_device, output_device,
                 samplerate=wanted, blocksize=self._buffer_size,
@@ -131,6 +136,7 @@ class GuitarFXController:
                 # Fallback rate kicked in; keep DSP/tuner in sync with reality.
                 self.fx.set_samplerate(actual)
                 self.tuner.set_samplerate(actual)
+                self.metronome.set_samplerate(actual)
             self._last_error = None
         except Exception as e:
             self._last_error = str(e)
@@ -251,6 +257,44 @@ class GuitarFXController:
     def get_tuner(self):
         """Return the current TunerReading, or None if no clear pitch."""
         return self.tuner.estimate()
+
+    # ---------------------------------------------------------------
+    # Metronome
+    # ---------------------------------------------------------------
+    def set_metronome_enabled(self, on: bool):
+        self.metronome.set_enabled(on)
+        self._notify_state()
+
+    def is_metronome_enabled(self) -> bool:
+        return self.metronome.enabled
+
+    def set_bpm(self, bpm: float):
+        self.metronome.set_bpm(bpm)
+
+    def get_bpm(self) -> float:
+        return self.metronome.get_bpm()
+
+    def set_beats_per_bar(self, n: int):
+        self.metronome.set_beats_per_bar(n)
+
+    def get_beats_per_bar(self) -> int:
+        return self.metronome.beats_per_bar
+
+    def set_metronome_volume(self, v: float):
+        self.metronome.volume = max(0.0, min(1.0, float(v)))
+
+    def get_metronome_volume(self) -> float:
+        return self.metronome.volume
+
+    def tap_tempo(self) -> float:
+        """Register a tap; returns the (possibly updated) BPM."""
+        return self.metronome.tap()
+
+    def metronome_beat_state(self):
+        """(beat_count, current_beat_in_bar) for a UI flash indicator.
+        beat_count increases by 1 each click; compare it to the last value
+        you saw to know a beat just fired."""
+        return (self.metronome.beat_count, self.metronome.current_beat)
 
     # ---------------------------------------------------------------
     # Metering

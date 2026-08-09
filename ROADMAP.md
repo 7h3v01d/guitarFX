@@ -3,6 +3,12 @@
 Ideas and planned features, roughly in priority order. Nothing here is a
 commitment to a date — it's a place to park where we're headed.
 
+## Shipped
+
+- **Metronome** (v2.2.0) — sample-accurate click with tap-tempo, adjustable
+  BPM and beats-per-bar, an accented downbeat, and a beat-flash indicator in the
+  Stage skin. Built on a shared clock the looper will lock to.
+
 ## Near-term (stability & quality of life)
 
 - **Stability / latency control in the UI.** The engine already supports it
@@ -45,15 +51,9 @@ Sketch of how it fits the current design:
 
 ### Metronome
 
-A companion to the looper and useful on its own for practice.
-
-- **Tempo (BPM)** with **tap-tempo**, and a **time signature** (4/4, 3/4, 6/8…).
-- Audible click (accent the downbeat, softer on other beats) mixed into the
-  output; generated in the DSP layer so it's sample-accurate.
-- **Visual beat indicator** in the skin (flash / bouncing dot).
-- Optional **count-in** (one bar of clicks before looper recording starts).
-- Shared clock so the **looper locks to the metronome** — the thing that makes
-  layered parts actually line up.
+Shipped in v2.2.0 (see "Shipped" above). Remaining follow-ups: a **count-in**
+(one bar of clicks before looper recording) — the `count_in_bars` hook already
+exists — and letting the **looper lock to this clock** so layers stay in time.
 
 ## Ideas / maybe later
 

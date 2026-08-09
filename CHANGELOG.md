@@ -1,5 +1,33 @@
 # Changelog
 
+## 2.2.0 — Metronome
+
+### Added
+- **Metronome** — a sample-accurate click generator (`core/metronome.py`) mixed
+  into the output stream:
+  - Adjustable **BPM** (30–300) and **beats per bar**, with an **accented
+    downbeat** (louder + higher pitch).
+  - **Tap-tempo** — tap the button in time and it sets the BPM from your taps.
+  - A **beat-flash** indicator in the Stage skin (teal downbeat / green off-beats)
+    and a **METRO** control bar (on/off, BPM, tap, beats-per-bar).
+  - Timed off the audio clock (not a GUI timer), so it stays in time regardless
+    of UI load, and it rebuilds cleanly when the device sample rate changes.
+  - Defaults to **off**, and it's an independent reference tone — enabling it
+    doesn't colour the guitar sound.
+- Controller API for skins: `set_metronome_enabled` / `is_metronome_enabled`,
+  `set_bpm` / `get_bpm`, `set_beats_per_bar` / `get_beats_per_bar`,
+  `set_metronome_volume` / `get_metronome_volume`, `tap_tempo`,
+  `metronome_beat_state`.
+
+### Notes
+- This is the shared clock the planned **looper** will lock to (see ROADMAP.md).
+- Tests: 40 passing (ten new for the metronome — timing, tap-tempo, accent,
+  block-boundary continuity, samplerate change).
+- The Stage window grew slightly to fit the metronome bar. The metronome UI is
+  the one piece I couldn't render-test in my environment (no Tk there), though
+  its logic is fully tested and every control wire was statically verified — so
+  if anything looks off on first launch, send the traceback.
+
 ## 2.1.1 — Stability: stop the cut-outs
 
 ### Fixed

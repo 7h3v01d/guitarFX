@@ -82,6 +82,14 @@ While the stream is running, the Stage skin shows the note you're playing and ho
 many cents sharp/flat you are — green when you're in tune. It also names the nearest
 standard-tuning open string (E A D G B E) as a hint.
 
+### Metronome
+
+The Stage skin has a **METRO** bar: toggle it **ON**, set the **BPM** (or hit
+**TAP** a few times in rhythm to set the tempo by feel), and choose **BEATS/BAR**
+(4 for most songs, 3 for a waltz). The dot flashes teal on the downbeat and green
+on the other beats, and the click is mixed into your output so you can play along.
+It's independent of the guitar tone — turning it on doesn't change your sound.
+
 ## Make it yours (re-theming)
 
 Every colour and font in the Stage skin lives in `skins/stage/theme.json`. Want it

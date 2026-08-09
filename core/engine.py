@@ -30,6 +30,7 @@ def device_samplerate(device_index, fallback=SAMPLE_RATE):
 class AudioEngine:
     def __init__(self, fx: EffectsChain):
         self.fx = fx
+        self.metronome = None      # optional Metronome, mixed into the output
         self.stream = None
         self.blocksize = BLOCK_SIZE
         self.latency = "high"      # 'high' lets PortAudio pick a safe buffer
@@ -45,6 +46,10 @@ class AudioEngine:
         try:
             x = indata[:, 0].astype(np.float32)
             y = self.fx.process(x)
+            m = self.metronome
+            if m is not None and m.enabled:
+                y = y + m.render(len(y))
+                np.clip(y, -1.0, 1.0, out=y)
             outdata[:, 0] = y
         except Exception:
             # A DSP error must NEVER abort the stream (that's a hard cut-out).
