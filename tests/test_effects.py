@@ -203,3 +203,26 @@ def test_set_samplerate_same_rate_is_noop():
     combs = list(fx._comb_delays)
     fx.set_samplerate(44100)
     assert fx._comb_delays == combs
+
+
+# ---- EQ fast-path (CPU / stability) ---------------------------------
+
+def test_flat_eq_is_skipped():
+    # With a flat EQ the band filters must not run, so their internal state
+    # stays at rest (revert-proven: if the fast-path is removed and the filters
+    # always run, these buffers warm up to non-zero and this fails).
+    fx = EffectsChain(SR)
+    _run_blocks(fx, _sine(300, SR))
+    assert np.count_nonzero(fx._lo_zi) == 0
+    assert np.count_nonzero(fx._mid_zi) == 0
+    assert np.count_nonzero(fx._hi_zi) == 0
+
+
+def test_engaged_eq_still_runs():
+    fx = EffectsChain(SR)
+    fx.tone_high = 6.0
+    _run_blocks(fx, _sine(300, SR))
+    warmed = (np.count_nonzero(fx._lo_zi)
+              + np.count_nonzero(fx._mid_zi)
+              + np.count_nonzero(fx._hi_zi))
+    assert warmed > 0

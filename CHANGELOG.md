@@ -1,5 +1,28 @@
 # Changelog
 
+## 2.1.1 — Stability: stop the cut-outs
+
+### Fixed
+- **Cutting in and out / crackle under load.** Several causes addressed:
+  - The **3-band EQ now skips its filters when flat** (the default). It was
+    running three IIR filters every block for no tonal change — needless CPU
+    that could push the audio callback past its deadline and drop out.
+  - On Windows the app now **prefers the WASAPI** audio host API instead of the
+    default MME, which stutters badly on full-duplex. (The same physical device
+    is listed once per host API; we now steer to the stable WASAPI copy.)
+  - The audio callback is **wrapped in a failsafe**: a transient DSP error can
+    no longer abort the stream (which showed up as a hard cut-out). On error it
+    passes the dry signal through and counts it (`controller.get_proc_errors()`).
+  - Stream open now **falls back through auto buffer size** and then 44100 Hz,
+    so a fussy device still ends up with working audio.
+
+### Notes
+- If you were selecting an "MME"/"DirectSound" copy of the cable before, you'll
+  now see the WASAPI one — pick that.
+- Roadmap added (`ROADMAP.md`): **looper (live looping + overdubbing)** and a
+  **metronome** are the next planned features.
+- Tests: 30 passing (two new, revert-proven, for the EQ fast-path).
+
 ## 2.1.0 — Input level + anti-static audio fixes
 
 ### Fixed

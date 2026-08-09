@@ -53,17 +53,45 @@ class GuitarFXController:
     # ---------------------------------------------------------------
     # Devices
     # ---------------------------------------------------------------
+    def _preferred_hostapi(self):
+        """On Windows, prefer the WASAPI host API — it's markedly more stable
+        for full-duplex than the default MME (which stutters/cuts out). The
+        same physical device is enumerated once per host API; steering to
+        WASAPI avoids the glitchy duplicates. Returns a hostapi index or None."""
+        import sys
+        if not sys.platform.startswith("win"):
+            return None
+        try:
+            import sounddevice as sd
+            for i, ha in enumerate(sd.query_hostapis()):
+                if "wasapi" in ha["name"].lower():
+                    return i
+        except Exception:
+            pass
+        return None
+
+    def _devices(self, kind):
+        """kind: 'in' or 'out'. Returns [(global_index, name), ...], filtered
+        to the preferred host API when available, else all devices."""
+        import sounddevice as sd
+        chan = "max_input_channels" if kind == "in" else "max_output_channels"
+        devs = list(enumerate(sd.query_devices()))
+        pref = self._preferred_hostapi()
+        if pref is not None:
+            filtered = [(i, d) for i, d in devs
+                        if d[chan] > 0 and d["hostapi"] == pref]
+            if filtered:
+                return [(i, d["name"]) for i, d in filtered]
+        # Fallback: every device with the right channel direction.
+        return [(i, d["name"]) for i, d in devs if d[chan] > 0]
+
     def list_input_devices(self):
         """Returns [(index, name), ...] for devices with input channels."""
-        import sounddevice as sd
-        return [(i, d["name"]) for i, d in enumerate(sd.query_devices())
-                if d["max_input_channels"] > 0]
+        return self._devices("in")
 
     def list_output_devices(self):
         """Returns [(index, name), ...] for devices with output channels."""
-        import sounddevice as sd
-        return [(i, d["name"]) for i, d in enumerate(sd.query_devices())
-                if d["max_output_channels"] > 0]
+        return self._devices("out")
 
     def guess_guitar_input(self):
         """Best-effort pick of a likely USB guitar interface, else first input."""
@@ -127,6 +155,11 @@ class GuitarFXController:
         keeps climbing while playing, that's the audible static -> raise the
         buffer size."""
         return getattr(self.engine, "xruns", 0)
+
+    def get_proc_errors(self) -> int:
+        """Number of DSP callback errors since start (should stay 0). Non-zero
+        means the failsafe dry-passthrough kicked in."""
+        return getattr(self.engine, "proc_errors", 0)
 
     def get_samplerate(self) -> int:
         """The rate the stream actually opened at (may differ from 44100)."""

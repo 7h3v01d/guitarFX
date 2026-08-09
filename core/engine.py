@@ -35,15 +35,25 @@ class AudioEngine:
         self.latency = "high"      # 'high' lets PortAudio pick a safe buffer
         self.samplerate = SAMPLE_RATE
         self.xruns = 0             # count of under/overruns since start (0 = clean)
+        self.proc_errors = 0       # count of DSP callback errors (should stay 0)
 
     def _callback(self, indata, outdata, frames, time_info, status):
         if status:
-            # Under/overruns show up here. They're the audible 'static'/crackle.
+            # Under/overruns surface here — the audible 'static'/crackle.
             # Count them so the UI can warn instead of silently glitching.
             self.xruns += 1
-        x = indata[:, 0].astype(np.float32)
-        y = self.fx.process(x)
-        outdata[:, 0] = y
+        try:
+            x = indata[:, 0].astype(np.float32)
+            y = self.fx.process(x)
+            outdata[:, 0] = y
+        except Exception:
+            # A DSP error must NEVER abort the stream (that's a hard cut-out).
+            # Fail safe: pass the dry input straight through and keep going.
+            self.proc_errors += 1
+            try:
+                outdata[:, 0] = indata[:, 0]
+            except Exception:
+                outdata.fill(0)
 
     def _open(self, input_device, output_device, samplerate, blocksize, latency):
         return sd.Stream(
@@ -58,11 +68,14 @@ class AudioEngine:
 
     def start(self, input_device, output_device,
               samplerate=None, blocksize=None, latency=None):
-        """Open the duplex stream. If samplerate is None, use the input
-        device's native rate (falling back to 44100). If that rate can't be
-        opened, retry at 44100 so we always get *some* audio."""
+        """Open the duplex stream as robustly as possible. Tries, in order:
+          1. native device rate + requested block size
+          2. native device rate + auto block size (host picks the safest)
+          3. 44100 Hz + auto block size
+        so we always end up with *some* working audio rather than an error."""
         self.stop()
         self.xruns = 0
+        self.proc_errors = 0
 
         if blocksize is not None:
             self.blocksize = int(blocksize)
@@ -71,18 +84,23 @@ class AudioEngine:
         if samplerate is None:
             samplerate = device_samplerate(input_device)
 
-        try:
-            self.stream = self._open(input_device, output_device,
-                                     samplerate, self.blocksize, self.latency)
-            self.stream.start()
-            self.samplerate = int(samplerate)
-        except Exception:
-            # Fall back to the classic 44.1k path.
-            self.stream = self._open(input_device, output_device,
-                                     SAMPLE_RATE, self.blocksize, self.latency)
-            self.stream.start()
-            self.samplerate = SAMPLE_RATE
-        return self.samplerate
+        attempts = [
+            (samplerate, self.blocksize),
+            (samplerate, 0),        # blocksize 0 -> PortAudio/host chooses optimal
+            (SAMPLE_RATE, 0),
+        ]
+        last_err = None
+        for sr, bs in attempts:
+            try:
+                self.stream = self._open(input_device, output_device,
+                                         sr, bs, self.latency)
+                self.stream.start()
+                self.samplerate = int(sr)
+                return self.samplerate
+            except Exception as e:
+                last_err = e
+                self.stream = None
+        raise last_err if last_err else RuntimeError("could not open audio stream")
 
     def stop(self):
         if self.stream is not None:

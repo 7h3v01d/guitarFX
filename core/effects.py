@@ -216,13 +216,17 @@ class EffectsChain:
         # Cabinet sim (tames harsh distortion; also nice on clean)
         y = self._apply_cab(y)
 
-        # 3-band EQ (split, apply gain per band, sum)
-        lo, self._lo_zi = lfilter(self._lo_b, self._lo_a, y, zi=self._lo_zi)
-        mid, self._mid_zi = lfilter(self._mid_b, self._mid_a, y, zi=self._mid_zi)
-        hi, self._hi_zi = lfilter(self._hi_b, self._hi_a, y, zi=self._hi_zi)
-        y = (lo * self._db_to_gain(self.tone_low) +
-             mid * self._db_to_gain(self.tone_mid) +
-             hi * self._db_to_gain(self.tone_high))
+        # 3-band EQ (split, apply gain per band, sum). Skipped entirely when
+        # flat — this is the default, and running three IIR filters every block
+        # for no tonal change was needless CPU that could starve the audio
+        # callback (dropouts). Also leaves the clean tone slightly flatter.
+        if self.tone_low != 0.0 or self.tone_mid != 0.0 or self.tone_high != 0.0:
+            lo, self._lo_zi = lfilter(self._lo_b, self._lo_a, y, zi=self._lo_zi)
+            mid, self._mid_zi = lfilter(self._mid_b, self._mid_a, y, zi=self._mid_zi)
+            hi, self._hi_zi = lfilter(self._hi_b, self._hi_a, y, zi=self._hi_zi)
+            y = (lo * self._db_to_gain(self.tone_low) +
+                 mid * self._db_to_gain(self.tone_mid) +
+                 hi * self._db_to_gain(self.tone_high))
 
         # Chorus
         y = self._apply_chorus(y)

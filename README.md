@@ -4,8 +4,6 @@ Turn your PC into a guitar amp/effects box using a USB guitar cable
 (the kind with a 1/4" jack on one end and USB on the other — it's a
 built-in audio interface).
 
-<img width="902" height="752" alt="screenshot" src="/screenshot.png" />
-
 ## What it does
 
 Guitar in → **Noise Gate → Drive → Cabinet Sim → 3-Band EQ → Chorus → Delay → Reverb → Master**
@@ -162,6 +160,10 @@ preset system — all headless, no audio hardware needed.
   `controller.set_buffer_size(2048)` (or 4096) before START — more stable, slightly
   more latency. The engine also counts glitches; `controller.get_xruns()` climbing
   while you play confirms it's an underrun.
+- **Cuts in and out (Windows):** the app now prefers the **WASAPI** version of your
+  devices, which is far more stable than MME for live guitar. If your device list
+  shows more than one entry for the same hardware, pick the WASAPI one. Keep other
+  audio apps (browsers, games) closed while playing — they can grab the device.
 - **Static only when Input Gain is high:** you're amplifying the cable's own noise
   floor — back the gain off and raise the OS input level / Master instead.
 - **No sound:** double-check you selected the *right* input device (not your laptop's
