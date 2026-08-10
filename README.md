@@ -4,8 +4,7 @@ Turn your PC into a guitar amp/effects box using a USB guitar cable
 (the kind with a 1/4" jack on one end and USB on the other — it's a
 built-in audio interface).
 
-<img width="902" height="904" alt="screenshot" src="https://github.com/user-attachments/assets/77166082-128f-4d82-9ac4-a9f624d0ca74" />
-
+<img width="902" height="904" alt="screenshot" src="/screenshot.png" />
 
 ---
 
