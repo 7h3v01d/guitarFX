@@ -4,10 +4,6 @@ Turn your PC into a guitar amp/effects box using a USB guitar cable
 (the kind with a 1/4" jack on one end and USB on the other — it's a
 built-in audio interface).
 
-<img width="902" height="824" alt="screenshot" src="/screenshot.png" />
-
----
-
 ## What it does
 
 Guitar in → **Noise Gate → Drive → Cabinet Sim → 3-Band EQ → Chorus → Delay → Reverb → Master**
@@ -107,6 +103,10 @@ In the Stage skin's **LOOPER** bar the big button cycles through the workflow:
 **Stop** pauses playback (the loop is kept), **Undo** removes the most recent
 layer, and **Clear** wipes the loop to start over. The ring shows the loop
 position and the number in the middle is how many layers you've stacked.
+**⭳ WAV** saves the finished loop to a file you can keep or share (it lands in
+`~/.guitarfx/loops/` unless you pick a location). **◀ REV** flips the loop to
+play backwards — record a phrase, reverse it, and solo over the top. **LVL**
+sets how loud the loop sits under your live playing.
 
 **Tip:** turn the **metronome on first**. The looper then gives you a **one-bar
 count-in** (four clicks) before it records, and snaps the loop to a whole number

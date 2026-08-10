@@ -1,5 +1,40 @@
 # Changelog
 
+# Changelog
+
+## 2.5.0 — Loop reverse + level
+
+### Added
+- **Reverse (◀ REV):** flip the loop so it plays backwards. Implemented as a
+  physical flip of every stored layer, so overdub, undo and WAV export all keep
+  working normally afterwards — reverse again to flip back.
+- **Loop level (LVL):** a slider in the LOOPER bar to set how loud the loop sits
+  under your live playing.
+- Controller API: `looper_reverse`, `is_loop_reversed` (loop volume via the
+  existing `set_loop_volume` / `get_loop_volume`).
+
+### Notes
+- Tests: 60 passing (five new — reverse plays backwards, double-reverse restores,
+  reverse keeps undo working, reverse is a safe no-op with no loop, and loop
+  volume scales playback).
+
+## 2.4.0 — Export loop to WAV
+
+### Added
+- **Save your loop.** The LOOPER bar has a new **⭳ WAV** button that writes the
+  current loop — all layers mixed down — to a mono 16-bit PCM WAV file. Pick a
+  location, or it saves a timestamped file under `~/.guitarfx/loops/`.
+  - Peak-protected: layered overdubs that sum past full scale are scaled down so
+    the file doesn't clip.
+  - Uses the stream's actual sample rate, so pitch/length are correct.
+  - Built on the standard library (`core/audio_io.py`) — no new dependencies.
+- Controller API: `export_loop_wav(path=None)`; looper gained `render_mix()`
+  (a safe copy of the mixed loop).
+
+### Notes
+- Tests: 55 passing (four new — WAV round-trip, out-of-range clipping, and that
+  `render_mix` returns a copy rather than the live buffer).
+
 ## 2.3.0 — Looper (live looping + overdubbing)
 
 ### Added

@@ -19,7 +19,7 @@ import json
 import math
 import os
 import tkinter as tk
-from tkinter import ttk, messagebox, simpledialog
+from tkinter import ttk, messagebox, simpledialog, filedialog
 
 from skins.base import FrontendSkin
 from core.controller import GuitarFXController
@@ -413,6 +413,23 @@ class _StageApp(tk.Tk):
         tk.Button(bar, text="✕ Clear", command=self._loop_clear, relief="flat",
                   bg=t["panel_edge"], fg=t["danger"], activebackground=t["danger"],
                   font=(t["font_family"], 10, "bold")).pack(side="left", padx=4, pady=6)
+        tk.Button(bar, text="⭳ WAV", command=self._loop_export, relief="flat",
+                  bg=t["panel_edge"], fg=t["accent"], activebackground=t["accent"],
+                  font=(t["font_family"], 10, "bold")).pack(side="left", padx=4, pady=6)
+        self.rev_btn = tk.Button(bar, text="◀ REV", command=self._loop_reverse, relief="flat",
+                                 bg=t["panel_edge"], fg=t["fg"], activebackground=t["accent"],
+                                 font=(t["font_family"], 10, "bold"))
+        self.rev_btn.pack(side="left", padx=4, pady=6)
+
+        # loop level
+        tk.Label(bar, text="LVL", bg=t["panel_bg"], fg=t["muted"],
+                 font=(t["font_family"], 8, "bold")).pack(side="left", padx=(12, 2))
+        self.loop_vol = tk.Scale(bar, from_=0, to=100, orient="horizontal",
+                                 showvalue=0, length=80, command=self._loop_volume,
+                                 bg=t["panel_bg"], fg=t["fg"], troughcolor=t["panel_edge"],
+                                 highlightthickness=0, relief="flat")
+        self.loop_vol.set(int(self.controller.get_loop_volume() * 100))
+        self.loop_vol.pack(side="left", padx=2, pady=6)
 
         self.loop_status = tk.Label(bar, text="empty", bg=t["panel_bg"], fg=t["muted"],
                                     font=(t["font_family"], 9, "bold"))
@@ -559,6 +576,38 @@ class _StageApp(tk.Tk):
         self.controller.looper_clear()
         self._refresh_loop(force=True)
 
+    def _loop_reverse(self):
+        self.controller.looper_reverse()
+        t = self.theme
+        on = self.controller.is_loop_reversed()
+        self.rev_btn.config(text="▶ REV" if on else "◀ REV",
+                            bg=t["accent"] if on else t["panel_edge"],
+                            fg="#04231f" if on else t["fg"])
+        self._refresh_loop(force=True)
+
+    def _loop_volume(self, val):
+        try:
+            self.controller.set_loop_volume(int(val) / 100.0)
+        except (tk.TclError, ValueError):
+            pass
+
+    def _loop_export(self):
+        try:
+            path = filedialog.asksaveasfilename(
+                title="Save loop as WAV", defaultextension=".wav",
+                filetypes=[("WAV audio", "*.wav")], parent=self)
+        except Exception:
+            path = None
+        try:
+            saved = self.controller.export_loop_wav(path if path else None)
+        except ValueError as e:
+            messagebox.showwarning("Export loop", str(e))
+            return
+        except Exception as e:
+            messagebox.showerror("Export loop", f"Couldn't save the loop:\n{e}")
+            return
+        messagebox.showinfo("Loop saved", f"Saved to:\n{saved}")
+
     def _refresh_loop(self, force=False):
         t = self.theme
         st = self.controller.looper_state()
@@ -581,6 +630,11 @@ class _StageApp(tk.Tk):
                     text=f"{layers} layer{'s' if layers != 1 else ''} · {secs:.1f}s",
                     fg=t["good"] if name != "stopped" else t["muted"])
             self.loop_ring.itemconfig(self._loop_txt, text=str(st["layers"]))
+            # keep the REV button in sync (e.g. after Clear resets it)
+            rev = self.controller.is_loop_reversed()
+            self.rev_btn.config(text="▶ REV" if rev else "◀ REV",
+                                bg=t["accent"] if rev else t["panel_edge"],
+                                fg="#04231f" if rev else t["fg"])
         # progress ring updates every poll
         extent = -359.9 * st["position"] if st["has_loop"] else 0
         self.loop_ring.itemconfig(self._loop_arc, extent=extent)

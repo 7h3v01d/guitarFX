@@ -38,6 +38,7 @@ class Looper:
         self.max_seconds = float(max_seconds)
         self.volume = float(volume)
         self.state = IDLE
+        self.reversed = False
 
         self._length = 0
         self._pos = 0
@@ -70,6 +71,15 @@ class Looper:
 
     def has_loop(self) -> bool:
         return self._length > 0
+
+    def render_mix(self):
+        """Return a copy of the full mixed loop (sum of all committed layers)
+        as a float32 array, or None if there's no loop yet. Safe to call from
+        another thread — it snapshots the current mix reference and copies it."""
+        mix = self._mix
+        if self._length <= 0 or mix is None:
+            return None
+        return np.asarray(mix, dtype=np.float32).copy()
 
     def is_active(self) -> bool:
         return self.state != IDLE
@@ -152,6 +162,7 @@ class Looper:
 
     def clear(self):
         self.state = IDLE
+        self.reversed = False
         self._length = 0
         self._pos = 0
         self._layers = []
@@ -160,6 +171,18 @@ class Looper:
         self._cap_len = 0
         self._countin_remaining = 0
         self._quantize_spb = None
+
+    def reverse(self):
+        """Flip the loop so it plays backwards. Physically reverses every stored
+        layer + the mix (and mirrors the play position), so overdub, undo and
+        export all keep working normally afterwards. Only when a loop exists and
+        we're not mid-record."""
+        if self._length <= 0 or self.state not in (PLAYING, STOPPED):
+            return
+        self._mix = self._mix[::-1].copy()
+        self._layers = [layer[::-1].copy() for layer in self._layers]
+        self._pos = (self._length - self._pos) % self._length
+        self.reversed = not self.reversed
 
     def undo(self):
         """Remove the most recent overdub layer (or cancel one in progress).

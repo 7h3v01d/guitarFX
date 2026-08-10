@@ -161,3 +161,66 @@ def test_toggle_cycles_states():
     lp.toggle(); assert lp.state == PLAYING
     lp.toggle(); assert lp.state == OVERDUBBING
     lp.toggle(); assert lp.state == PLAYING
+
+
+# ---- reverse + volume -----------------------------------------------
+
+def test_reverse_plays_backwards():
+    lp = Looper(SR)
+    lp.arm_record()
+    L = 1000
+    ramp = np.linspace(0, 1, L).astype(np.float32)
+    _feed(lp, ramp)
+    lp.close_record()
+    lp.reverse()
+    assert lp.reversed is True
+    out = _feed(lp, np.zeros(L, dtype=np.float32))
+    assert np.allclose(out, ramp[::-1] * lp.volume, atol=1e-5)
+
+
+def test_double_reverse_restores():
+    lp = Looper(SR)
+    lp.arm_record()
+    L = 800
+    ramp = np.linspace(0, 1, L).astype(np.float32)
+    _feed(lp, ramp)
+    lp.close_record()
+    lp.reverse(); lp.reverse()
+    assert lp.reversed is False
+    out = _feed(lp, np.zeros(L, dtype=np.float32))
+    assert np.allclose(out, ramp * lp.volume, atol=1e-5)
+
+
+def test_reverse_keeps_undo_working():
+    lp = Looper(SR)
+    lp.arm_record()
+    L = 600
+    _feed(lp, np.full(L, 0.2, dtype=np.float32))
+    lp.close_record()
+    _feed(lp, np.zeros(L, dtype=np.float32))
+    lp.start_overdub()
+    _feed(lp, np.full(L, 0.3, dtype=np.float32))
+    lp.stop_overdub()
+    assert lp.layer_count == 2
+    lp.reverse()
+    lp.undo()                      # still removes the overdub after reversing
+    assert lp.layer_count == 1
+    out = _feed(lp, np.zeros(L, dtype=np.float32))
+    assert np.allclose(out, 0.2 * lp.volume, atol=1e-5)
+
+
+def test_reverse_ignored_without_loop():
+    lp = Looper(SR)
+    lp.reverse()                   # no loop -> no-op, no crash
+    assert lp.reversed is False
+
+
+def test_loop_volume_scales_playback():
+    lp = Looper(SR)
+    lp.volume = 0.5
+    lp.arm_record()
+    L = 500
+    _feed(lp, np.full(L, 0.8, dtype=np.float32))
+    lp.close_record()
+    out = _feed(lp, np.zeros(L, dtype=np.float32))
+    assert np.allclose(out, 0.8 * 0.5, atol=1e-5)

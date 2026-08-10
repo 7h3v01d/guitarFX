@@ -25,6 +25,8 @@ Design notes for skin authors:
 
 from typing import Callable, Optional
 
+import numpy as np
+
 from . import presets as presets_mod
 from .effects import EffectsChain
 from .engine import AudioEngine, SAMPLE_RATE
@@ -341,6 +343,13 @@ class GuitarFXController:
         self.looper.undo()
         self._notify_state()
 
+    def looper_reverse(self):
+        self.looper.reverse()
+        self._notify_state()
+
+    def is_loop_reversed(self) -> bool:
+        return self.looper.reversed
+
     def set_loop_volume(self, v: float):
         self.looper.volume = max(0.0, min(1.0, float(v)))
 
@@ -357,6 +366,31 @@ class GuitarFXController:
             "length_seconds": lp.length_seconds,
             "has_loop": lp.has_loop(),
         }
+
+    def export_loop_wav(self, path: str = None) -> str:
+        """Save the current loop (all layers mixed) to a mono 16-bit WAV.
+        If path is None, writes a timestamped file under ~/.guitarfx/loops/.
+        Returns the saved path. Raises ValueError if there's no loop."""
+        import os
+        import datetime
+        from .audio_io import write_wav_mono
+
+        mix = self.looper.render_mix()
+        if mix is None:
+            raise ValueError("There's no loop to export yet.")
+
+        # Peak-protect: layered overdubs can sum past full scale.
+        peak = float(np.max(np.abs(mix))) if mix.size else 0.0
+        if peak > 0.99:
+            mix = mix * (0.99 / peak)
+
+        if path is None:
+            folder = os.path.join(os.path.expanduser("~"), ".guitarfx", "loops")
+            os.makedirs(folder, exist_ok=True)
+            stamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+            path = os.path.join(folder, f"loop_{stamp}.wav")
+
+        return write_wav_mono(path, mix, self.get_samplerate())
 
     # ---------------------------------------------------------------
     # Metering

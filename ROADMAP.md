@@ -5,6 +5,11 @@ commitment to a date — it's a place to park where we're headed.
 
 ## Shipped
 
+- **Reverse + loop level** (v2.5.0) — flip the loop to play backwards (◀ REV),
+  and a loop-volume slider in the LOOPER bar.
+- **Export loop to WAV** (v2.4.0) — save the mixed loop (all layers) to a mono
+  16-bit WAV via the LOOPER bar's **⭳ WAV** button; peak-protected, timestamped
+  under `~/.guitarfx/loops/` by default.
 - **Looper** (v2.3.0) — live looping with overdub/layering, locked to the
   metronome. First pass sets the loop (quantised to whole bars when the click is
   on); later passes stack layers; one-bar count-in; Stop / Play / Undo / Clear
@@ -29,9 +34,9 @@ commitment to a date — it's a place to park where we're headed.
 
 Shipped in v2.3.0 (record / overdub / layer / undo / clear, bar-quantised,
 one-bar count-in, progress ring). Still on the wish list:
-- **Per-layer volume** and a **feedback/decay** control (older layers fade).
-- **Half / double speed** and **reverse** on the loop.
-- **Export the loop to a `.wav`** so she can keep what she makes.
+- **Half / double speed** on the loop (octave up/down).
+- **Feedback/decay** so older layers fade over repeats (Frippertronics-style).
+- **Per-layer volume** (needs a small per-layer UI).
 - **Redo** (currently undo only), and multi-level undo of the base layer.
 
 ### Metronome
