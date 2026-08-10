@@ -4,6 +4,10 @@ Turn your PC into a guitar amp/effects box using a USB guitar cable
 (the kind with a 1/4" jack on one end and USB on the other — it's a
 built-in audio interface).
 
+<img width="902" height="904" alt="screenshot" src="/screenshot.png" />
+
+---
+
 ## What it does
 
 Guitar in → **Noise Gate → Drive → Cabinet Sim → 3-Band EQ → Chorus → Delay → Reverb → Master**
